@@ -21,22 +21,17 @@ title TEXT,
 status TEXT,
 created_at DATETIME)""")
 
-def add_task():
-    title = input("Enter the title: ").lower()
+def get_status():
     while True:
-        status = input("Enter the status (1. new/ 2. in progress/3. done): ").lower()
-        if status == '1':
-            status = 'new'
-            break
-        elif status == '2':
-            status = 'in progress'
-            break
-        elif status == '3':
-            status = 'done'
-            break
-        else:
-            print("Invalid input. Try again!")
-            continue
+        status = input("Enter status (1. new/2. in progress/3. done): ")
+        variants = {'1': 'new', '2': 'in progress', '3': 'done'}
+        if status in variants:
+            return variants[status]
+        print("Invalid input. Try again!")
+
+def add_task():
+    title = input("Enter the title: ")
+    status = get_status()
     created_at = dt.datetime.now().strftime("%d.%m.%y / %H:%M:%S")
 
     cur.execute("""INSERT INTO task(title, status, created_at)
@@ -104,31 +99,18 @@ def update_task():
 
         q = input("What would you like to update (1: title, 2: status)?: ")
         if q == '1':
-            new_title = input("Enter new title: ").lower()
+            new_title = input("Enter new title: ")
             cur.execute("UPDATE task SET title = ? WHERE id = ?", (new_title, taskid))
             con.commit()
             print("You succesfully updated title!")
             logging.info(f"Task #{taskid} updated title to {new_title}..")
             break
         elif q == '2':
-            while True:
-                new_status = input("Enter new status (1. new/ 2. in progress/3. done): ")
-                if new_status == '1':
-                    new_status = 'new'
-                    break
-                elif new_status == '2':
-                    new_status = 'in progress'
-                    break
-                elif new_status == '3':
-                    new_status = 'done'
-                    break
-                else:
-                    print("Invalid input. Try again!")
-                    continue
-            cur.execute("UPDATE task SET status = ? WHERE id = ?", (new_status, taskid))
+            status = get_status()
+            cur.execute("UPDATE task SET status = ? WHERE id = ?", (status, taskid))
             con.commit()
             print("You succesfully updated status!")                
-            logging.info(f"Task #{taskid} updated status to {new_status}..")
+            logging.info(f"Task #{taskid} updated status to {status}..")
             break
         else:
             print("Invalid option. Try again!")
@@ -148,6 +130,7 @@ while True:
         delete_task()
     elif choice == '5':
         con.close()
+        logging.info("Connection closed..")
         break
     else:
         print('Invalid option. Try again!')
