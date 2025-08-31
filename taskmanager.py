@@ -9,7 +9,7 @@ logging.basicConfig(
     format = "%(asctime)s | %(levelname)s | %(message)s",
     datefmt = "%d.%m.%y - %H:%M:%S",
     handlers = [
-        logging.FileHandler('databases/logs.txt')
+        logging.FileHandler('logs.txt')
       # logging.StreamHandler()
     ]
 )
