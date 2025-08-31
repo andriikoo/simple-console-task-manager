@@ -9,7 +9,7 @@ logging.basicConfig(
     format = "%(asctime)s | %(levelname)s | %(message)s",
     datefmt = "%d.%m.%y - %H:%M:%S",
     handlers = [
-        logging.FileHandler('logs.txt')
+        logging.FileHandler('databases/logs.txt')
       # logging.StreamHandler()
     ]
 )
@@ -96,4 +96,3 @@ def select_db():
 
 db = select_db()
 db.menu()
-
