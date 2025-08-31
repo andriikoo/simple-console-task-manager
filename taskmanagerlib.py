@@ -1,4 +1,5 @@
 import datetime as dt
+import logging
 
 def get_status():
     while True:
@@ -8,21 +9,21 @@ def get_status():
             return variants[status]
         print("Invalid input. Try again!")
 
-def add_task():
+def add_task(db):
     title = input("Enter the title: ")
     status = get_status()
     created_at = dt.datetime.now().strftime("%d.%m.%y / %H:%M:%S")
 
-    cur.execute("""INSERT INTO task(title, status, created_at)
+    db.cur.execute("""INSERT INTO task(title, status, created_at)
     VALUES (?, ?, ?)""", (title, status, created_at))
-    con.commit()
-    task_id = cur.lastrowid
-    print(f'New task succesfully added! ID: {task_id}')
+    db.con.commit()
+    task_id = db.cur.lastrowid
+    print(f'New task successfully added! ID: {task_id}')
     logging.info(f"New task created ID: {task_id}..")
 
-def show_tasks():
-    cur.execute("SELECT * FROM task")
-    rows = cur.fetchall()
+def show_tasks(db):
+    db.cur.execute("SELECT * FROM task")
+    rows = db.cur.fetchall()
 
     if not rows:
         print("No tasks found!")
@@ -34,8 +35,8 @@ def show_tasks():
         print(f"{id}. {title} - {status} - {created_at}")
     logging.info("All tasks displayed..")
 
-def delete_task():
-    show_tasks()
+def delete_task(db):
+    show_tasks(db)
     while True:
         try:
             taskid = int(input("Enter task-id to delete: "))
@@ -44,22 +45,22 @@ def delete_task():
             logging.warning("User entered non-integer task ID for deletion.")
             continue
 
-        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
-        result = cur.fetchone()
+        db.cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
+        result = db.cur.fetchone()
 
         if result is None:
             print(f"Task with id {taskid} not found.")
             logging.warning(f"Attempt to delete non-existing task #{taskid}")
             continue
 
-        cur.execute("DELETE FROM task WHERE id = ?", (taskid,))
-        con.commit()
+        db.cur.execute("DELETE FROM task WHERE id = ?", (taskid,))
+        db.con.commit()
         print("Task successfully deleted!")
         logging.info(f"Task #{taskid} deleted.")
         break
 
-def update_task():
-    show_tasks()
+def update_task(db):
+    show_tasks(db)
     while True:
         try:
             taskid = int(input("Enter task-id to update: "))
@@ -68,8 +69,8 @@ def update_task():
             logging.warning("User entered non-integer task ID for deletion.")
             continue
             
-        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
-        result = cur.fetchone()
+        db.cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
+        result = db.cur.fetchone()
 
         if result is None:
             print(f"Task with id {taskid} not found.")
@@ -79,16 +80,16 @@ def update_task():
         q = input("What would you like to update (1: title, 2: status)?: ")
         if q == '1':
             new_title = input("Enter new title: ")
-            cur.execute("UPDATE task SET title = ? WHERE id = ?", (new_title, taskid))
-            con.commit()
-            print("You succesfully updated title!")
+            db.cur.execute("UPDATE task SET title = ? WHERE id = ?", (new_title, taskid))
+            db.con.commit()
+            print("You successfully updated title!")
             logging.info(f"Task #{taskid} updated title to {new_title}..")
             break
         elif q == '2':
             status = get_status()
-            cur.execute("UPDATE task SET status = ? WHERE id = ?", (status, taskid))
-            con.commit()
-            print("You succesfully updated status!")                
+            db.cur.execute("UPDATE task SET status = ? WHERE id = ?", (status, taskid))
+            db.con.commit()
+            print("You successfully updated status!")                
             logging.info(f"Task #{taskid} updated status to {status}..")
             break
         else:

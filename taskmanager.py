@@ -2,7 +2,6 @@ import os
 import taskmanagerlib as lib
 import sqlite3 as sql
 import logging
-import datetime as dt
 
 logging.basicConfig(
     level = logging.INFO,
@@ -27,7 +26,7 @@ class Tasks:
         self.con.commit()
 
     def __str__(self):
-        return f"DB - {self.dbpath}.db"
+        return f"DB - {self.dbpath}"
     
     def close(self):
         self.con.close()
@@ -35,7 +34,7 @@ class Tasks:
 
     def menu(self):  
         while True:
-            print(f"You working with {self.dbpath}.db")
+            print(f"You working with {self.dbpath}")
             print("1. Add task\n2. Show tasks\n3. Update task\n4. Delete task\n5. Exit")
             choice = input("Select an action: ")
             if choice == '1':
@@ -50,7 +49,8 @@ class Tasks:
                 self.close()
                 logging.info("Connection closed..")
                 print("Connection closed!")
-                select_db()
+                new_db = select_db()
+                new_db.menu()
                 break
             else:
                 print('Invalid option. Try again!')
@@ -61,6 +61,8 @@ def create_db():
     os.makedirs(dbfolder, exist_ok=True)
     name = input("Enter the name of a new DB: ")
     dbpath = os.path.join(dbfolder, f"{name}.db")
+    logging.info("Database created..")
+    print("DB succesfully created!")
     return Tasks(dbpath)
 
 def select_db():
@@ -86,10 +88,10 @@ def select_db():
         try:
             choice = int(input("Enter number (or 999 to create new): "))
             if 1 <= choice <= len(dbfiles):
-                dbchoice = dbfiles[choice - 1].replace(".db", "")
+                dbchoice = os.path.join(dbfolder, dbfiles[choice - 1])
                 return Tasks(dbchoice)
             elif choice == 999:
-                create_db()
+                return create_db()
         except ValueError:
             pass
         print("Invalid option. Try again!")
