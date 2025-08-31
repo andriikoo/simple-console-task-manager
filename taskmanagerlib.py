@@ -1,0 +1,96 @@
+import datetime as dt
+
+def get_status():
+    while True:
+        status = input("Enter status (1. new/2. in progress/3. done): ")
+        variants = {'1': 'new', '2': 'in progress', '3': 'done'}
+        if status in variants:
+            return variants[status]
+        print("Invalid input. Try again!")
+
+def add_task():
+    title = input("Enter the title: ")
+    status = get_status()
+    created_at = dt.datetime.now().strftime("%d.%m.%y / %H:%M:%S")
+
+    cur.execute("""INSERT INTO task(title, status, created_at)
+    VALUES (?, ?, ?)""", (title, status, created_at))
+    con.commit()
+    task_id = cur.lastrowid
+    print(f'New task succesfully added! ID: {task_id}')
+    logging.info(f"New task created ID: {task_id}..")
+
+def show_tasks():
+    cur.execute("SELECT * FROM task")
+    rows = cur.fetchall()
+
+    if not rows:
+        print("No tasks found!")
+        logging.warning("No tasks found..")
+        return
+
+    for row in rows:
+        id, title, status, created_at = row
+        print(f"{id}. {title} - {status} - {created_at}")
+    logging.info("All tasks displayed..")
+
+def delete_task():
+    show_tasks()
+    while True:
+        try:
+            taskid = int(input("Enter task-id to delete: "))
+        except ValueError:
+            print("Invalid input! Please enter a number.")
+            logging.warning("User entered non-integer task ID for deletion.")
+            continue
+
+        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
+        result = cur.fetchone()
+
+        if result is None:
+            print(f"Task with id {taskid} not found.")
+            logging.warning(f"Attempt to delete non-existing task #{taskid}")
+            continue
+
+        cur.execute("DELETE FROM task WHERE id = ?", (taskid,))
+        con.commit()
+        print("Task successfully deleted!")
+        logging.info(f"Task #{taskid} deleted.")
+        break
+
+def update_task():
+    show_tasks()
+    while True:
+        try:
+            taskid = int(input("Enter task-id to update: "))
+        except ValueError:
+            print("Invalid input! Please enter a number.")
+            logging.warning("User entered non-integer task ID for deletion.")
+            continue
+            
+        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
+        result = cur.fetchone()
+
+        if result is None:
+            print(f"Task with id {taskid} not found.")
+            logging.warning(f"Attempt to update non-existing task #{taskid}")
+            continue
+
+        q = input("What would you like to update (1: title, 2: status)?: ")
+        if q == '1':
+            new_title = input("Enter new title: ")
+            cur.execute("UPDATE task SET title = ? WHERE id = ?", (new_title, taskid))
+            con.commit()
+            print("You succesfully updated title!")
+            logging.info(f"Task #{taskid} updated title to {new_title}..")
+            break
+        elif q == '2':
+            status = get_status()
+            cur.execute("UPDATE task SET status = ? WHERE id = ?", (status, taskid))
+            con.commit()
+            print("You succesfully updated status!")                
+            logging.info(f"Task #{taskid} updated status to {status}..")
+            break
+        else:
+            print("Invalid option. Try again!")
+            continue

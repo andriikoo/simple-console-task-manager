@@ -1,3 +1,5 @@
+import os
+import taskmanagerlib as lib
 import sqlite3 as sql
 import logging
 import datetime as dt
@@ -12,126 +14,86 @@ logging.basicConfig(
     ]
 )
 
-con = sql.connect("tasks.db")
-cur = con.cursor()
+class Tasks:
+    def __init__(self, dbpath):
+        self.dbpath = dbpath
+        self.con = sql.connect(self.dbpath)
+        self.cur = self.con.cursor()
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS task(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            status TEXT,
+            created_at DATETIME)""")
+        self.con.commit()
 
-cur.execute("""CREATE TABLE IF NOT EXISTS task(
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-title TEXT,
-status TEXT,
-created_at DATETIME)""")
-
-def get_status():
-    while True:
-        status = input("Enter status (1. new/2. in progress/3. done): ")
-        variants = {'1': 'new', '2': 'in progress', '3': 'done'}
-        if status in variants:
-            return variants[status]
-        print("Invalid input. Try again!")
-
-def add_task():
-    title = input("Enter the title: ")
-    status = get_status()
-    created_at = dt.datetime.now().strftime("%d.%m.%y / %H:%M:%S")
-
-    cur.execute("""INSERT INTO task(title, status, created_at)
-    VALUES (?, ?, ?)""", (title, status, created_at))
-    con.commit()
-    task_id = cur.lastrowid
-    print(f'New task succesfully added! ID: {task_id}')
-    logging.info(f"New task created ID: {task_id}..")
-
-def show_tasks():
-    cur.execute("SELECT * FROM task")
-    rows = cur.fetchall()
-
-    if not rows:
-        print("No tasks found!")
-        logging.warning("No tasks found..")
-        return
-
-    for row in rows:
-        id, title, status, created_at = row
-        print(f"{id}. {title} - {status} - {created_at}")
-    logging.info("All tasks displayed..")
-
-def delete_task():
-    show_tasks()
-    while True:
-        try:
-            taskid = int(input("Enter task-id to delete: "))
-        except ValueError:
-            print("Invalid input! Please enter a number.")
-            logging.warning("User entered non-integer task ID for deletion.")
-            continue
-
-        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
-        result = cur.fetchone()
-
-        if result is None:
-            print(f"Task with id {taskid} not found.")
-            logging.warning(f"Attempt to delete non-existing task #{taskid}")
-            continue
-
-        cur.execute("DELETE FROM task WHERE id = ?", (taskid,))
-        con.commit()
-        print("Task successfully deleted!")
-        logging.info(f"Task #{taskid} deleted.")
-        break
-
-def update_task():
-    show_tasks()
-    while True:
-        try:
-            taskid = int(input("Enter task-id to update: "))
-        except ValueError:
-            print("Invalid input! Please enter a number.")
-            logging.warning("User entered non-integer task ID for deletion.")
-            continue
-            
-        cur.execute("SELECT id FROM task WHERE id = ?", (taskid,))
-        result = cur.fetchone()
-
-        if result is None:
-            print(f"Task with id {taskid} not found.")
-            logging.warning(f"Attempt to update non-existing task #{taskid}")
-            continue
-
-        q = input("What would you like to update (1: title, 2: status)?: ")
-        if q == '1':
-            new_title = input("Enter new title: ")
-            cur.execute("UPDATE task SET title = ? WHERE id = ?", (new_title, taskid))
-            con.commit()
-            print("You succesfully updated title!")
-            logging.info(f"Task #{taskid} updated title to {new_title}..")
-            break
-        elif q == '2':
-            status = get_status()
-            cur.execute("UPDATE task SET status = ? WHERE id = ?", (status, taskid))
-            con.commit()
-            print("You succesfully updated status!")                
-            logging.info(f"Task #{taskid} updated status to {status}..")
-            break
-        else:
-            print("Invalid option. Try again!")
-            continue
-
-while True:
-    print("Welcome to the Console-Task-Manager!")
-    print("1. Add task\n2. Show tasks\n3. Update task\n4. Delete task\n5. Exit")
-    choice = input("Select an action: ")
-    if choice == '1':
-        add_task()
-    elif choice == '2':
-        show_tasks()
-    elif choice == '3':
-        update_task()
-    elif choice == '4':
-        delete_task()
-    elif choice == '5':
-        con.close()
+    def __str__(self):
+        return f"DB - {self.dbpath}.db"
+    
+    def close(self):
+        self.con.close()
         logging.info("Connection closed..")
-        break
-    else:
-        print('Invalid option. Try again!')
-        continue
+
+    def menu(self):  
+        while True:
+            print(f"You working with {self.dbpath}.db")
+            print("1. Add task\n2. Show tasks\n3. Update task\n4. Delete task\n5. Exit")
+            choice = input("Select an action: ")
+            if choice == '1':
+                lib.add_task(self)
+            elif choice == '2':
+                lib.show_tasks(self)
+            elif choice == '3':
+                lib.update_task(self)
+            elif choice == '4':
+                lib.delete_task(self)
+            elif choice == '5':
+                self.close()
+                logging.info("Connection closed..")
+                print("Connection closed!")
+                select_db()
+                break
+            else:
+                print('Invalid option. Try again!')
+                continue
+
+def create_db():
+    dbfolder = "databases"
+    os.makedirs(dbfolder, exist_ok=True)
+    name = input("Enter the name of a new DB: ")
+    dbpath = os.path.join(dbfolder, f"{name}.db")
+    return Tasks(dbpath)
+
+def select_db():
+    dbfolder = 'databases'
+    os.makedirs(dbfolder, exist_ok=True)
+    dbfiles = [f for f in os.listdir(dbfolder) if f.endswith(".db")]
+
+    if not dbfiles:
+        while True:
+            question = input("No file found. Create new? (y/n): ")
+            if question == 'y':
+                return create_db()
+            elif question == 'n':
+                print("Oki, bra.")
+                continue
+            print ("Wrong Input!")
+    
+    print("Select DB to work with or create new: ")
+    for i, db in enumerate(dbfiles, start=1):
+        print(f"{i}. {db}")
+
+    while True:
+        try:
+            choice = int(input("Enter number (or 999 to create new): "))
+            if 1 <= choice <= len(dbfiles):
+                dbchoice = dbfiles[choice - 1].replace(".db", "")
+                return Tasks(dbchoice)
+            elif choice == 999:
+                create_db()
+        except ValueError:
+            pass
+        print("Invalid option. Try again!")
+
+db = select_db()
+db.menu()
+
