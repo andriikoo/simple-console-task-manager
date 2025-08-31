@@ -47,11 +47,8 @@ class Tasks:
                 lib.delete_task(self)
             elif choice == '5':
                 self.close()
-                logging.info("Connection closed..")
                 print("Connection closed!")
-                new_db = select_db()
-                new_db.menu()
-                break
+                return
             else:
                 print('Invalid option. Try again!')
                 continue
@@ -61,8 +58,13 @@ def create_db():
     os.makedirs(dbfolder, exist_ok=True)
     name = input("Enter the name of a new DB: ")
     dbpath = os.path.join(dbfolder, f"{name}.db")
-    logging.info("Database created..")
-    print("DB succesfully created!")
+
+    if os.path.exists(dbpath):
+        logging.info(f"DB {dbpath} already exists. Opening it..")
+        print("DB already exists. Opening it!")
+    else:
+        logging.info("Database created..")
+        print("DB succesfully created!")
     return Tasks(dbpath)
 
 def select_db():
@@ -71,14 +73,8 @@ def select_db():
     dbfiles = [f for f in os.listdir(dbfolder) if f.endswith(".db")]
 
     if not dbfiles:
-        while True:
-            question = input("No file found. Create new? (y/n): ")
-            if question == 'y':
-                return create_db()
-            elif question == 'n':
-                print("Oki, bra.")
-                continue
-            print ("Wrong Input!")
+        print("No file found. Creating new..")
+        create_db()
     
     print("Select DB to work with or create new: ")
     for i, db in enumerate(dbfiles, start=1):
@@ -86,15 +82,21 @@ def select_db():
 
     while True:
         try:
-            choice = int(input("Enter number (or 999 to create new): "))
+            choice = int(input("Enter number (999 to create new DB) | (0 to exit): "))
             if 1 <= choice <= len(dbfiles):
                 dbchoice = os.path.join(dbfolder, dbfiles[choice - 1])
                 return Tasks(dbchoice)
             elif choice == 999:
                 return create_db()
+            elif choice == 0:
+                return None
         except ValueError:
             pass
         print("Invalid option. Try again!")
 
-db = select_db()
-db.menu()
+while True:
+    db = select_db()
+    if db is None:
+        print("Exiting program..")
+        break
+    db.menu()
