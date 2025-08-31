@@ -74,7 +74,7 @@ def select_db():
 
     if not dbfiles:
         print("No file found. Creating new..")
-        create_db()
+        return create_db()
     
     print("Select DB to work with or create new: ")
     for i, db in enumerate(dbfiles, start=1):
